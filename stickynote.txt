@@ -1,0 +1,79 @@
+1.4
+장고는 새로 킬때마다
+pipenv shell
+django-admin이 잘 실행되는지 봐야한다.
+
+2.0
+프로젝트 시작시 홈페이지에 있는 방법 말고
+만들어둔 파일에 django-admin startproject config를 추천한다.
+
+우선 python for vscode python extension pack 두 가지를 깔아준다.(윈도우는 꼭.)
+vscode의 settings에서 default formatter를 파이썬으로 설정.
+그러면 파일 안에 config 파일이 생기는데 Aconfig 또는 다른 이름으로 바꾸는걸 추천한다.
+그다음 그 안에 있는 config 파일과 manage.py를 밖으로 꺼내고 이름 바꾼 파일은 지운다.
+
+이때 manage.py를 켜보면 에러들이 있을탠데
+안나온다면 extension에서 파이썬을 깔아야한다.
+
+ctrl+shift+p -> python:select interpreter -> 맨 밑에꺼 -> pipenv가 파일명에 써져있는 파이썬 버젼 선택
+.vscode가 생길수도 있고 안생길수도 있다.
+
+2.1
+파이썬은 compile 언어가 아니다. 그래서 Linter를 설치하면 파이썬에서 에러가 생기는 부분을 미리 감지해준다.(PEP8을 따라서)
+그 이후 terminal에 &pipenv install flake8 또는 ctrl+shift+p->select Linter->flake8->설치안되어 있다고 뜨면 거기서 설치
+Formatter는 black을 추천하고 prettier와 하는 역할이 같다. pipenv install black --dev --pre
+setting.json파일이 안바꼈었는데 manage.py 파일에 ctrl+s를 하니 다른게 설치되어있다고 뜨고 밑에 black을 사용하겠느냐 떠서 해보니 된다.
+아마 그전에 vscode의 settings에서 default formatter를 파이썬으로 설정해줘야하는거 같다.
+
+text black
+"python.linting.flake8Args":["--max-line-length=88"]
+로 config settings.py의 길이 에러를 잡아준다. 하나는 유질될탠데 91은 너무 길어서 어쩔수 없다.
+
+text flake8
+같은 파일에 저장을 해보면 작은 따음표가 쌍 따음표로 바뀌는거 볼 수 있다.
+
+2.2
+settings.py에서 TIME_ZONE = "Asia/Seoul"로 바꿔준다.
+
+2.3 마우스 올리고 ctrl+p를 누르면 함수의 위치로 갈수 있다. 가끔 안될때도 있으니 화내지 말자.`
+ctrl+z 가 서버를 끄는거라고 하는데 안되니 ctrl+c를 사용하자
+
+python manage.py makemigrations
+settings.py 파일을 다음과 같이 바꾼다.
+'NAME': str(os.path.join(BASE_DIR, "db.sqlite3"))
+
+python manage.py createsuperuser
+
+2.4
+맨 처음 project를 생성하면 우리의 data base는 empty상태이다.
+이로인하여 경고가 빨간색 경고가 발생하고 있다.
+
+migrate 명령을 실행하여 경고 메시지에 있던 앱들이 필요로 하는 테이블들을 생성하면된다.
+=>python manage.py migrate
+
+migrate를 통해 admin, auth, contenttypes, sessions 앱이 사용하는 테이블이 생성되었음을 알려준다. 이렇게 테이블이 생성되면 Django는 어떤 항목들을 읽어들어야 할지 알게된다.
+이로인하여 오류가 해결된다.
+
+2.5
+group function의 집합을 Applications
+Applications의 집합을 project
+
+application을 만들때는 가장 작은 범위를 가지게끔 해야한다. 즉, 폴더는 크면 절때 안된다.
+한 문장으로 표현할 수 없다면 그 애플리케이션은 조깨져야한다.
+
+2.6
+django-admin startapp application_name(복수형)
+messages는 파일명으로 쓰면 안된다. 이미 있다.
+
+3.0
+1) model == 데이터가 보여지는 모습 (데이터 테이블을 정의하는 것)
+
+2) class User(AbstractUser):
+니꼬쌤이 admin 페이지 에서 보여준 user에 관한 정보를 상속하여 확장한다.
+차후 추가적인 정보인 성별, 관심사 등등 확장해 나갈 수 있다.
+
+3) app은 settings.py에 등록해야 사용가능
+
+4) 기존에 Django에는 user 라는 app이 이미 존재함.
+따라서 우리가 만든 users app과 충돌이 발생함
+=> db.sqllite3를 제거후, AUTH_USER_MODEL 등록시 Django는 우리가 만든 users app을 인식하게 됨
