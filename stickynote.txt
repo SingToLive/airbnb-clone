@@ -77,3 +77,105 @@ messages는 파일명으로 쓰면 안된다. 이미 있다.
 4) 기존에 Django에는 user 라는 app이 이미 존재함.
 따라서 우리가 만든 users app과 충돌이 발생함
 => db.sqllite3를 제거후, AUTH_USER_MODEL 등록시 Django는 우리가 만든 users app을 인식하게 됨
+
+3.1
+models.py에 만들어 넣어준 User class를 admin.py에 입력해준다.
+models.py
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+
+# Create your models here.
+class User(AbstractUser):
+    bio = models.TextField()
+
+
+admin.py
+from django.contrib import admin
+from . import models
+
+# Register your models here.
+@admin.register(models.User)
+class CustomUserAdmin(admin.ModelAdmin):
+    pass
+
+이러면 에러가 뜨는데 그 이유는 데이터베이스에 User.bio라는 항목이 없기 때문이다.
+그래서 데이터베이스를 만들어줘야한다.
+python manage.py makemigrations
+하지만 이 또한 default가 없어서 실행이 안된다.
+class User(AbstractUser):
+    bio = models.TextField(default="")
+바꿔주고 다시 실행한다.
+이후 python manage.py migrate를 실행한다.
+그러면 bio파일이 생긴다.
+
+3.2
+bio = models.TextField(default="")
+또는 bio = models.TextField(null=True)를 해도 된다.
+
+class User(AbstractUser):
+
+    """Custom User Model"""
+
+    avatar = models.ImageField(null=True)
+    gender = models.CharField(max_length=10, null=True)
+    bio = models.TextField(default="")
+
+이미지를 설치하기 위해서는 pipenv install Pillow를 해줘야한다.
+
+TextField는 글자수 제한 없이 쓸수 있다.
+CharField는 한줄 짜리 텍스트이다.(character field)
+
+CharField는 chooses를 사용하여 커스터마이즈가 가능하다.
+class User(AbstractUser):
+
+    """Custom User Model"""
+
+    GENDER_MALE = "male"
+    GENDER_FEMALE = "female"
+    GENDER_OTHER = "other"
+
+    GENDER_CHOICES = (
+        (GENDER_MALE, "Male"),
+        (GENDER_FEMALE, "Female"),
+        (GENDER_OTHER, "Other"),
+    )
+
+    avatar = models.ImageField(null=True)
+    gender = models.CharField(choices=GENDER_CHOICES, max_length=10, null=True)
+    bio = models.TextField(default="")
+
+    이렇게.
+
+    admin에서 제출할려고 하면 빈칸일시 에러가 뜬다. null=True는 데이터베이스에서 적용되는 거고 admin자체에서 할려면 blank=True를 적용해줘야한다.
+
+3.4
+admin.py
+@admin.register(models.User)를 대신해서 하단의
+admin.site.register(models.User, CustomUserAdmin)을 사용한다.
+
+@--- 를 decorater라고 하는데 이들은 class위에 있어야 작동한다.
+
+class CustomUserAdmin(admin.ModelAdmin):
+    list_display = ("username", "gender", "language", "currency", "superhost")
+를 줘서 admin에 보이는 list를 만들수 있다.
+
+class CustomUserAdmin(admin.ModelAdmin):
+    """Custon User Admin"""
+
+    list_display = ("username", "gender", "language", "currency", "superhost")
+    list_filter = ("superhost", "language", "currency")
+
+filter도 줄 수 있다.
+
+3.5
+fieldsets은 파란색 줄인데 이걸 추가하는 방법을 배워볼것이다.
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
+from . import models
+
+# Register your models here.
+@admin.register(models.User)
+class CustomUserAdmin(UserAdmin):
+    """Custon User Admin"""
+
+    fieldsets = UserAdmin.fieldsets + (("Banana", {"fields": ("avatar", "gender", "bio")}),)
