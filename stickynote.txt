@@ -179,3 +179,450 @@ class CustomUserAdmin(UserAdmin):
     """Custon User Admin"""
 
     fieldsets = UserAdmin.fieldsets + (("Banana", {"fields": ("avatar", "gender", "bio")}),)
+
+4.0
+room 모델을 만들기 위해서 우선 config의 settings에 추가한다.
+PROJECT_APPS = ["users.apps.UsersConfig", "rooms.apps.RoomsConfig"]
+
+이후 rooms/models.py에
+from django.db import models
+
+# Create your models here.
+class Room(models.Model):
+    """Room Model Definition"""
+
+    pass
+
+그후 rooms/admin.py에
+from django.contrib import admin
+from . import models
+
+# Register your models here.
+@admin.register(models.Room)
+class RoomAdmin(admin.ModelAdmin):
+    pass
+
+룸이 업데이트 될때마다 알 수 있게 할것이다.
+created = models.DateTimeField()
+updated = models.DateTimeField()
+이 두가지를 쓸것이다 많은 곳에서 쓰인다. 그래서
+django-admin startapp core를 하여 core파일을 불러온다.
+
+core/models.py에
+from django.db import models
+
+# Create your models here.
+class TimeStampedModel(models.Model):
+    """Time Stamped Model"""
+
+    created = models.DateTimeField()
+    updated = models.DateTimeField()
+후
+
+config/settings.py에 추가해준다.
+PROJECT_APPS = ["core.apps.CoreConfig","users.apps.UsersConfig", "rooms.apps.RoomsConfig"]
+
+하지만 TimeStampedModel은 데이터베이스에 전송되지 않길 원한다.
+class TimeStampedModel(models.Model):
+    """Time Stamped Model"""
+
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now = True)
+
+    class Meta:
+        abstract = True
+
+위를 바꿧기 때문에 rooms/models.py를
+from django.db import models
+from core import models as core_models
+
+# Create your models here.
+class Room(core_models.Model):
+    """Room Model Definition"""
+    pass
+와 같이 바꿔준다.
+
+4.1
+room항목을 만들꺼다.
+나라 이름을 전부 필요로 하는데 너무 많기에 장고를 사용한다.
+pipenv install django-countries
+이후 config/settings.py
+THIRD_PARTY_APPS = ["django_countries"]
+INSTALLED_APPS = DJANGO_APPS + PROJECT_APPS + THIRD_PARTY_APPS
+추가해준다.
+from django.db import models
+from core import models as core_models
+from django_countries.fields import CountryField
+
+# Create your models here.
+class Room(core_models.TimeStampedModel):
+    """Room Model Definition"""
+
+    name = models.CharField(max_length=140)
+    description = models.TextField()
+    country = CountryField()
+
+최종
+from django.db import models
+from core import models as core_models
+from django_countries.fields import CountryField
+from users import models as user_models
+
+# Create your models here.
+class Room(core_models.TimeStampedModel):
+    """Room Model Definition"""
+
+    name = models.CharField(max_length=140)
+    description = models.TextField()
+    country = CountryField()
+    city = models.CharField(max_length=80)
+    price = models.IntegerField()
+    address = models.CharField(max_length=140)
+    guests = models.IntegerField()
+    beds = models.IntegerField()
+    bedrooms = models.IntegerField()
+    baths = models.IntegerField()
+    check_in = models.TimeField()
+    check_out = models.TimeField()
+    instant_book = models.BooleanField(default=False)
+    host = models.ForeignKey(user_models.User, on_delete=models.CASCADE)
+
+4.2
+ForeignKey는 모델간의 연결을 도와준다.
+일대다 관계이다.
+
+4.3
+입력값을 튜닝할 수 있다.
+class Room(core_models.TimeStampedModel):
+    """Room Model Definition"""
+
+    name = models.CharField(max_length=140)
+    description = models.TextField()
+    country = CountryField()
+    city = models.CharField(max_length=80)
+    price = models.IntegerField()
+    address = models.CharField(max_length=140)
+    guests = models.IntegerField()
+    beds = models.IntegerField()
+    bedrooms = models.IntegerField()
+    baths = models.IntegerField()
+    check_in = models.TimeField()
+    check_out = models.TimeField()
+    instant_book = models.BooleanField(default=False)
+    host = models.ForeignKey(user_models.User, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.name
+
+다대다 관계.
+from django.db import models
+from core import models as core_models
+from django_countries.fields import CountryField
+from users import models as user_models
+
+
+class AbstractItem(core_models.TimeStampedModel):
+    """Abstract Item"""
+
+    name = models.CharField(max_length=80)
+
+    class Meta:
+        abstract = True
+
+    def __str__(self):
+        return self.name
+
+
+class RoomType(AbstractItem):
+    pass
+
+
+# Create your models here.
+class Room(core_models.TimeStampedModel):
+    """Room Model Definition"""
+
+    name = models.CharField(max_length=140)
+    description = models.TextField()
+    country = CountryField()
+    city = models.CharField(max_length=80)
+    price = models.IntegerField()
+    address = models.CharField(max_length=140)
+    guests = models.IntegerField()
+    beds = models.IntegerField()
+    bedrooms = models.IntegerField()
+    baths = models.IntegerField()
+    check_in = models.TimeField()
+    check_out = models.TimeField()
+    instant_book = models.BooleanField(default=False)
+    host = models.ForeignKey(user_models.User, on_delete=models.CASCADE)
+    room_type = models.ManyToManyField(RoomType, blank=True)
+
+    def __str__(self):
+        return self.name
+
+rooms/admin.py
+from django.contrib import admin
+from . import models
+
+# Register your models here.
+@admin.register(models.RoomType)
+class ItemAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(models.Room)
+class RoomAdmin(admin.ModelAdmin):
+    pass
+
+4.4
+from django.db import models
+from core import models as core_models
+from django_countries.fields import CountryField
+from users import models as user_models
+
+
+class AbstractItem(core_models.TimeStampedModel):
+    """Abstract Item"""
+
+    name = models.CharField(max_length=80)
+
+    class Meta:
+        abstract = True
+
+    def __str__(self):
+        return self.name
+
+
+class RoomType(AbstractItem):
+    """RoomType Object Definition"""
+
+    pass
+
+
+class Amenity(AbstractItem):
+    """Amenity Object Definition"""
+
+    pass
+
+
+class Facility(AbstractItem):
+    """Facility Model Definition"""
+
+    pass
+
+
+class HouseRule(AbstractItem):
+    """HouseRule Model Definition"""
+
+    pass
+
+
+# Create your models here.
+class Room(core_models.TimeStampedModel):
+    """Room Model Definition"""
+
+    name = models.CharField(max_length=140)
+    description = models.TextField()
+    country = CountryField()
+    city = models.CharField(max_length=80)
+    price = models.IntegerField()
+    address = models.CharField(max_length=140)
+    guests = models.IntegerField()
+    beds = models.IntegerField()
+    bedrooms = models.IntegerField()
+    baths = models.IntegerField()
+    check_in = models.TimeField()
+    check_out = models.TimeField()
+    instant_book = models.BooleanField(default=False)
+    host = models.ForeignKey(user_models.User, on_delete=models.CASCADE)
+    room_type = models.ForeignKey(RoomType, on_delete=models.SET_NULL, null=True)
+    amenities = models.ManyToManyField(Amenity)
+    facilities = models.ManyToManyField(Facility)
+    house_rules = models.ManyToManyField(HouseRule)
+
+    def __str__(self):
+        return self.name
+
+rooms/admin.py
+@admin.register(models.RoomType, models.Facility, models.Amenity, models.HouseRule)
+class ItemAdmin(admin.ModelAdmin):
+    pass
+
+하지만 rooms에 들어가보면 복수형이 틀리게 적용된걸 볼수 있다.
+다음 시간에~
+
+4.5
+class Amenity(AbstractItem):
+    """Amenity Object Definition"""
+
+    class Meta:
+        verbose_name_plural = "Amenities"
+이렇게 바꾸준다.
+
+class RoomType(AbstractItem):
+    """RoomType Object Definition"""
+
+    class Meta:
+        verbose_name = "Room Type"
+
+
+class Amenity(AbstractItem):
+    """Amenity Object Definition"""
+
+    class Meta:
+        verbose_name_plural = "Amenities"
+
+
+class Facility(AbstractItem):
+    """Facility Model Definition"""
+
+    class Meta:
+        verbose_name_plural = "Facilities"
+
+
+class HouseRule(AbstractItem):
+    """HouseRule Model Definition"""
+
+    class Meta:
+        verbose_name = "House Rule"
+
+또한
+ordering = ["created"] 정렬도 가능하다.
+ordering = ["name"]
+
+모델이 많을때는 스트링으로 하는것도 방법이다.
+from django.db import models
+from core import models as core_models
+from django_countries.fields import CountryField
+
+
+class AbstractItem(core_models.TimeStampedModel):
+    """Abstract Item"""
+
+    name = models.CharField(max_length=80)
+
+    class Meta:
+        abstract = True
+
+    def __str__(self):
+        return self.name
+
+
+class RoomType(AbstractItem):
+    """RoomType Object Definition"""
+
+    class Meta:
+        verbose_name = "Room Type"
+
+
+class Amenity(AbstractItem):
+    """Amenity Object Definition"""
+
+    class Meta:
+        verbose_name_plural = "Amenities"
+
+
+class Facility(AbstractItem):
+    """Facility Model Definition"""
+
+    class Meta:
+        verbose_name_plural = "Facilities"
+
+
+class HouseRule(AbstractItem):
+    """HouseRule Model Definition"""
+
+    class Meta:
+        verbose_name = "House Rule"
+
+
+class Photo(core_models.TimeStampedModel):
+    """Photo Model Definition"""
+
+    caption = models.CharField(max_length=80)
+    file = models.ImageField()
+    room = models.ForeignKey("Room", on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.caption
+
+
+# Create your models here.
+class Room(core_models.TimeStampedModel):
+    """Room Model Definition"""
+
+    name = models.CharField(max_length=140)
+    description = models.TextField()
+    country = CountryField()
+    city = models.CharField(max_length=80)
+    price = models.IntegerField()
+    address = models.CharField(max_length=140)
+    guests = models.IntegerField()
+    beds = models.IntegerField()
+    bedrooms = models.IntegerField()
+    baths = models.IntegerField()
+    check_in = models.TimeField()
+    check_out = models.TimeField()
+    instant_book = models.BooleanField(default=False)
+    host = models.ForeignKey("users.User", on_delete=models.CASCADE)
+    room_type = models.ForeignKey("RoomType", on_delete=models.SET_NULL, null=True)
+    amenities = models.ManyToManyField("Amenity", blank=True)
+    facilities = models.ManyToManyField("Facility", blank=True)
+    house_rules = models.ManyToManyField("HouseRule", blank=True)
+
+    def __str__(self):
+        return self.name
+
+사진 넣기 기능을 위해
+rooms/admin.py
+@admin.register(models.Photo)
+class PhotoAdmin(admin.ModelAdmin):
+    """Photo Admin Definition"""
+    pass
+
+5.0
+review 모델을 만든다.
+항상 그렇듯 처음에 config.settings에 추가해준다.
+PROJECT_APPS = [
+    "core.apps.CoreConfig",
+    "users.apps.UsersConfig",
+    "rooms.apps.RoomsConfig",
+    "reviews.apps.ReviewsConfig",
+]
+
+reviews/models.py
+from django.db import models
+from core import models as core_models
+
+# Create your models here.
+
+
+class Review(core_models.TimeStampedModel):
+
+    """Review Model Definition"""
+
+    review = models.TextField()
+    accuracy = models.IntegerField()
+    communication = models.IntegerField()
+    cleanliness = models.IntegerField()
+    location = models.IntegerField()
+    check_in = models.IntegerField()
+    value = models.IntegerField()
+    user = models.ForeignKey("users.User", on_delete=models.CASCADE)
+    room = models.ForeignKey("rooms.Room", on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.review} - {self.room}"
+
+reviews/admin.py
+from django.contrib import admin
+from . import models
+
+# Register your models here.
+@admin.register(models.Review)
+class ReviewAdmin(admin.ModelAdmin):
+
+    """Review Admin Definition"""
+
+    pass
+
