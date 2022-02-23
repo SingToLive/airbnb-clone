@@ -626,3 +626,98 @@ class ReviewAdmin(admin.ModelAdmin):
 
     pass
 
+6.0 Room Admin Panel
+city 리스트: https://github.com/coderholic/django-cities
+
+6.1 Room Admin Panel part Two
+rooms/migrations/admin.py
+from django.contrib import admin
+from . import models
+
+# Register your models here.
+@admin.register(models.RoomType, models.Facility, models.Amenity, models.HouseRule)
+class ItemAdmin(admin.ModelAdmin):
+    """Item Admin Definition"""
+
+    pass
+
+
+@admin.register(models.Room)
+class RoomAdmin(admin.ModelAdmin):
+    """Room Admin Definition"""
+
+    fieldsets = (
+        (
+            "Basic Info",
+            {"fields": ("name", "description", "country", "address", "price")},
+        ),
+        (
+            "Times",
+            {"fields": ("check_in", "check_out", "instant_book")},
+        ),
+        (
+            "Spaces",
+            {"fields": ("guests", "beds", "bedrooms", "baths")},
+        ),
+        (
+            "More About the Space",
+            {
+                "classes": ("collapse",),#접어두는 형식을 부여한다.
+                "fields": ("amenities", "facilities", "house_rules"),
+            },
+        ),
+        (
+            "Last Details",
+            {"fields": ("host",)},
+        ),
+    )
+
+    list_display = (
+        "name",
+        "country",
+        "city",
+        "price",
+        "address",
+        "guests",
+        "beds",
+        "bedrooms",
+        "baths",
+        "check_in",
+        "check_out",
+        "instant_book",
+    )
+
+    list_filter = (
+        "instant_book",
+        "host__superhost",
+        "room_type",
+        "amenities",
+        "facilities",
+        "house_rules",
+        "city",
+        "country",
+    )
+
+    search_fields = ("^city", "^host__username")
+    #아무것도 없을시 django자체적으로 검색을 해준다.
+    #^=startwith 등 다양한 형식이 있다.
+
+    filter_horizontal = (
+        "amenities",
+        "facilities",
+        "house_rules",
+    )
+    pass
+    #다양한 필터가 있을때 선택할 수 있겠금 해준다.
+
+
+@admin.register(models.Photo)
+class PhotoAdmin(admin.ModelAdmin):
+    """Photo Admin Definition"""
+
+    pass
+
+#6.2 Custom Admin Functions
+ordering = ("name", "price", "bedrooms")
+#정렬을 하게 해준다.
+물론 admin panel에서 클릭을 하므로써 추가 혹은 삭제 할 수 있다.
